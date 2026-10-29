@@ -66,6 +66,76 @@ set_target_properties(SDL3::SDL3 PROPERTIES
 )
 
 # --------------------------------------------------
+# SDL3_image
+# --------------------------------------------------
+
+if(NOT EXISTS "${SDL3_ROOT}/include/SDL3_image/SDL_image.h")
+    message(FATAL_ERROR
+        "SDL3_image header not found.")
+endif()
+
+find_library(SDL3_IMAGE_LIBRARY
+    NAMES SDL3_image
+    PATHS "${SDL3_ROOT}/lib/x64"
+    NO_DEFAULT_PATH
+)
+
+find_file(SDL3_IMAGE_DLL
+    NAMES SDL3_image.dll
+    PATHS "${SDL3_ROOT}/dll/x64"
+    NO_DEFAULT_PATH
+)
+
+if(NOT SDL3_IMAGE_LIBRARY OR NOT SDL3_IMAGE_DLL)
+    message(FATAL_ERROR
+        "SDL3_image library or DLL not found. Check SDL3/lib/x64 and SDL3/dll/x64.")
+endif()
+
+add_library(SDL3_image::SDL3_image SHARED IMPORTED GLOBAL)
+
+set_target_properties(SDL3_image::SDL3_image PROPERTIES
+    IMPORTED_IMPLIB "${SDL3_IMAGE_LIBRARY}"
+    IMPORTED_LOCATION "${SDL3_IMAGE_DLL}"
+    INTERFACE_INCLUDE_DIRECTORIES "${SDL3_ROOT}/include"
+    INTERFACE_LINK_LIBRARIES SDL3::SDL3
+)
+
+# --------------------------------------------------
+# SDL3_net
+# --------------------------------------------------
+
+if(NOT EXISTS "${SDL3_ROOT}/include/SDL3_net/SDL_net.h")
+    message(FATAL_ERROR
+        "SDL3_net header not found.")
+endif()
+
+find_library(SDL3_NET_LIBRARY
+    NAMES SDL3_net
+    PATHS "${SDL3_ROOT}/lib/x64"
+    NO_DEFAULT_PATH
+)
+
+find_file(SDL3_NET_DLL
+    NAMES SDL3_net.dll
+    PATHS "${SDL3_ROOT}/dll/x64"
+    NO_DEFAULT_PATH
+)
+
+if(NOT SDL3_NET_LIBRARY OR NOT SDL3_NET_DLL)
+    message(FATAL_ERROR
+        "SDL3_net library or DLL not found. Check SDL3/lib/x64 and SDL3/dll/x64.")
+endif()
+
+add_library(SDL3_net::SDL3_net SHARED IMPORTED GLOBAL)
+
+set_target_properties(SDL3_net::SDL3_net PROPERTIES
+    IMPORTED_IMPLIB "${SDL3_NET_LIBRARY}"
+    IMPORTED_LOCATION "${SDL3_NET_DLL}"
+    INTERFACE_INCLUDE_DIRECTORIES "${SDL3_ROOT}/include"
+    INTERFACE_LINK_LIBRARIES SDL3::SDL3
+)
+
+# --------------------------------------------------
 # Vulkan SDK
 # Uses the installed Vulkan SDK.
 # --------------------------------------------------
@@ -191,6 +261,8 @@ target_include_directories(HatRockEngine
 target_link_libraries(HatRockEngine
     PUBLIC
         SDL3::SDL3
+		SDL3_image::SDL3_image
+        SDL3_net::SDL3_net
         Vulkan::Vulkan
         OpenGL::GL
         GLEW::GLEW
@@ -243,4 +315,30 @@ add_executable(HatRock
 
 target_link_libraries(HatRock
     PRIVATE HatRockEngine
+)
+
+# Copy runtime DLLs beside the HatRock executable
+add_custom_command(TARGET HatRock POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SDL3_DLL}"
+        "$<TARGET_FILE_DIR:HatRock>"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SDL3_IMAGE_DLL}"
+        "$<TARGET_FILE_DIR:HatRock>"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SDL3_NET_DLL}"
+        "$<TARGET_FILE_DIR:HatRock>"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${GLEW_DLL}"
+        "$<TARGET_FILE_DIR:HatRock>"
+)
+
+# Copy runtime assets beside the executable
+add_custom_command(TARGET HatRock POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/Assets"
+        "$<TARGET_FILE_DIR:HatRock>/Assets"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/Shaders"
+        "$<TARGET_FILE_DIR:HatRock>/Shaders"
 )

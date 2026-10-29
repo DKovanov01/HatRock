@@ -157,8 +157,8 @@
     <ClCompile Include="VulkanUniformBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="multiPhong.frag" />
-    <None Include="multiPhong.vert" />
+    <None Include="Shaders/multiPhong.frag" />
+    <None Include="Shaders/multiPhong.vert" />
     <None Include="phong.frag" />
     <None Include="phong.vert" />
     <None Include="simplePhong.frag" />

@@ -8,6 +8,8 @@
 
 #include "MemoryMonitor.h"
 
+#include "SceneManager.h"
+
 #include "MMath.h"
 using namespace MATH;
 
@@ -17,7 +19,7 @@ int main() {
         std::cout << "Your PATH is: " << env_p << '\n';
     }*/
 
-    static_assert(sizeof(int*) == 8, "Vulkan no longer supports x86 builds");  //means "close the program right now" if there's an error, won't even let me build
+    static_assert(sizeof(int*) == 8, "Vulkan no longer supports x86 builds"); //means "close the program right now" if there's an error, won't even let me build
     // basically can't change to x86
 
     std::cout << "HatRock Engine starting...\n";
@@ -27,13 +29,13 @@ int main() {
 
     Debug::DebugInit("Vulkan Graphics Engine Log");
     Debug::Info("HatRock Engine starting through GameSceneManager", __FILE__, __LINE__);
-    /*SceneManager* gsm = new SceneManager();
+    SceneManager* gsm = new SceneManager();
     if (gsm->Initialize("Vulkan Graphics Engine", 1280, 720) == true) {
         gsm->Run();
-    }*/
+    }
 
     //delete gsm;
-    writeMemoryLog();
+	writeMemoryLog();
 
     return 0;
 }
