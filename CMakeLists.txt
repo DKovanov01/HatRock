@@ -19,6 +19,7 @@ set(ENGINE_DEPS_ROOT "C:/EngineDev")
 set(SDL3_ROOT "${ENGINE_DEPS_ROOT}/SDL3")
 set(GLEW_ROOT "${ENGINE_DEPS_ROOT}/OpenGL")
 set(MATH_ROOT "${ENGINE_DEPS_ROOT}/MathLibrary")
+set(ENTT_ROOT "${ENGINE_DEPS_ROOT}/EnTT")
 
 # --------------------------------------------------
 # SDL3
@@ -190,9 +191,7 @@ set_target_properties(GLEW::GLEW PROPERTIES
 )
 
 # --------------------------------------------------
-# Your MathLibrary
-# Your current layout stores source and header files
-# under MathLibrary/Include.
+# MathLibrary
 # --------------------------------------------------
 
 file(GLOB_RECURSE MATH_LIBRARY_SOURCES
@@ -219,6 +218,21 @@ else()
             "${GLEW_ROOT}/include"
     )
 endif()
+
+# --------------------------------------------------
+# EnTT
+# --------------------------------------------------
+
+if(NOT EXISTS "${ENTT_ROOT}/src/entt/entt.hpp")
+    message(FATAL_ERROR "EnTT headers not found.")
+endif()
+
+add_library(EnTT INTERFACE)
+add_library(EnTT::EnTT ALIAS EnTT)
+
+target_include_directories(EnTT INTERFACE
+    "${ENTT_ROOT}/src"
+)
 
 # --------------------------------------------------
 # Collect HatRock engine source files
@@ -267,6 +281,7 @@ target_link_libraries(HatRockEngine
         OpenGL::GL
         GLEW::GLEW
         MathLibrary
+		EnTT::EnTT
 )
 
 # --------------------------------------------------
