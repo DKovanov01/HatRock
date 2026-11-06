@@ -5,6 +5,7 @@
 #include <crtdbg.h> // crtdbg.h is a C runtime library header that provides functions for debugging memory allocation and detecting memory leaks in C and C++ programs.
 #include "Debug.h"
 #include <string>
+#include <PxPhysicsAPI.h>
 
 #include "MemoryMonitor.h"
 

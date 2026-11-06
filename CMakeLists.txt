@@ -20,6 +20,10 @@ set(SDL3_ROOT "${ENGINE_DEPS_ROOT}/SDL3")
 set(GLEW_ROOT "${ENGINE_DEPS_ROOT}/OpenGL")
 set(MATH_ROOT "${ENGINE_DEPS_ROOT}/MathLibrary")
 set(ENTT_ROOT "${ENGINE_DEPS_ROOT}/EnTT")
+set(PHYSX_ROOT "${ENGINE_DEPS_ROOT}/PhysX/physx")
+set(PHYSX_BIN "${PHYSX_ROOT}/bin/win.x86_64.vc143.md")
+set(PHYSX_DEBUG_BIN "${PHYSX_BIN}/debug")
+set(PHYSX_RELEASE_BIN "${PHYSX_BIN}/release")
 
 # --------------------------------------------------
 # SDL3
@@ -235,6 +239,118 @@ target_include_directories(EnTT INTERFACE
 )
 
 # --------------------------------------------------
+# PhysX
+# --------------------------------------------------
+
+if(NOT EXISTS "${PHYSX_ROOT}/include/PxPhysicsAPI.h")
+    message(FATAL_ERROR "PhysX headers not found.")
+endif()
+
+foreach(PHYSX_CONFIG DEBUG RELEASE)
+    if(PHYSX_CONFIG STREQUAL "DEBUG")
+        set(PHYSX_CONFIG_BIN "${PHYSX_DEBUG_BIN}")
+    else()
+        set(PHYSX_CONFIG_BIN "${PHYSX_RELEASE_BIN}")
+    endif()
+
+# Verify PhysX runtime DLLs
+foreach(PHYSX_DLL
+    PhysX_64.dll
+    PhysXCommon_64.dll
+    PhysXFoundation_64.dll
+)
+    if(NOT EXISTS "${PHYSX_CONFIG_BIN}/${PHYSX_DLL}")
+            message(FATAL_ERROR
+                "Missing PhysX ${PHYSX_CONFIG} DLL: ${PHYSX_CONFIG_BIN}/${PHYSX_DLL}")
+        endif()
+    endforeach()
+
+# Verify PhysX import and static libraries
+foreach(PHYSX_LIB
+    PhysX_64.lib
+    PhysXCommon_64.lib
+    PhysXFoundation_64.lib
+    PhysXExtensions_static_64.lib
+    PhysXPvdSDK_static_64.lib
+)
+    if(NOT EXISTS "${PHYSX_CONFIG_BIN}/${PHYSX_LIB}")
+            message(FATAL_ERROR
+                "Missing PhysX ${PHYSX_CONFIG} library: ${PHYSX_CONFIG_BIN}/${PHYSX_LIB}")
+        endif()
+    endforeach()
+endforeach()
+
+# PhysX Foundation
+add_library(PhysX::Foundation SHARED IMPORTED GLOBAL)
+set_target_properties(PhysX::Foundation PROPERTIES
+    IMPORTED_CONFIGURATIONS "DEBUG;RELEASE"
+
+    IMPORTED_IMPLIB_DEBUG
+        "${PHYSX_DEBUG_BIN}/PhysXFoundation_64.lib"
+    IMPORTED_LOCATION_DEBUG
+        "${PHYSX_DEBUG_BIN}/PhysXFoundation_64.dll"
+
+    IMPORTED_IMPLIB_RELEASE
+        "${PHYSX_RELEASE_BIN}/PhysXFoundation_64.lib"
+    IMPORTED_LOCATION_RELEASE
+        "${PHYSX_RELEASE_BIN}/PhysXFoundation_64.dll"
+)
+
+# PhysX Common
+add_library(PhysX::Common SHARED IMPORTED GLOBAL)
+set_target_properties(PhysX::Common PROPERTIES
+    IMPORTED_CONFIGURATIONS "DEBUG;RELEASE"
+
+    IMPORTED_IMPLIB_DEBUG
+        "${PHYSX_DEBUG_BIN}/PhysXCommon_64.lib"
+    IMPORTED_LOCATION_DEBUG
+        "${PHYSX_DEBUG_BIN}/PhysXCommon_64.dll"
+
+    IMPORTED_IMPLIB_RELEASE
+        "${PHYSX_RELEASE_BIN}/PhysXCommon_64.lib"
+    IMPORTED_LOCATION_RELEASE
+        "${PHYSX_RELEASE_BIN}/PhysXCommon_64.dll"
+)
+
+# PhysX Core
+add_library(PhysX::Core SHARED IMPORTED GLOBAL)
+set_target_properties(PhysX::Core PROPERTIES
+    IMPORTED_CONFIGURATIONS "DEBUG;RELEASE"
+
+    IMPORTED_IMPLIB_DEBUG
+        "${PHYSX_DEBUG_BIN}/PhysX_64.lib"
+    IMPORTED_LOCATION_DEBUG
+        "${PHYSX_DEBUG_BIN}/PhysX_64.dll"
+
+    IMPORTED_IMPLIB_RELEASE
+        "${PHYSX_RELEASE_BIN}/PhysX_64.lib"
+    IMPORTED_LOCATION_RELEASE
+        "${PHYSX_RELEASE_BIN}/PhysX_64.dll"
+)
+
+# PhysX Extensions
+add_library(PhysX::Extensions STATIC IMPORTED GLOBAL)
+set_target_properties(PhysX::Extensions PROPERTIES
+    IMPORTED_CONFIGURATIONS "DEBUG;RELEASE"
+
+    IMPORTED_LOCATION_DEBUG
+        "${PHYSX_DEBUG_BIN}/PhysXExtensions_static_64.lib"
+    IMPORTED_LOCATION_RELEASE
+        "${PHYSX_RELEASE_BIN}/PhysXExtensions_static_64.lib"
+)
+
+# PhysX Visual Debugger SDK
+add_library(PhysX::PvdSDK STATIC IMPORTED GLOBAL)
+set_target_properties(PhysX::PvdSDK PROPERTIES
+    IMPORTED_CONFIGURATIONS "DEBUG;RELEASE"
+
+    IMPORTED_LOCATION_DEBUG
+        "${PHYSX_DEBUG_BIN}/PhysXPvdSDK_static_64.lib"
+    IMPORTED_LOCATION_RELEASE
+        "${PHYSX_RELEASE_BIN}/PhysXPvdSDK_static_64.lib"
+)
+
+# --------------------------------------------------
 # Collect HatRock engine source files
 # --------------------------------------------------
 
@@ -270,6 +386,7 @@ target_include_directories(HatRockEngine
         "${CMAKE_CURRENT_SOURCE_DIR}/HatRock"
         "${MATH_ROOT}/Include"
         "${GLEW_ROOT}/include"
+		"${PHYSX_ROOT}/include"
 )
 
 target_link_libraries(HatRockEngine
@@ -282,6 +399,11 @@ target_link_libraries(HatRockEngine
         GLEW::GLEW
         MathLibrary
 		EnTT::EnTT
+		PhysX::Extensions
+		PhysX::PvdSDK
+		PhysX::Core
+		PhysX::Common
+		PhysX::Foundation
 )
 
 # --------------------------------------------------
@@ -345,6 +467,17 @@ add_custom_command(TARGET HatRock POST_BUILD
         "$<TARGET_FILE_DIR:HatRock>"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${GLEW_DLL}"
+        "$<TARGET_FILE_DIR:HatRock>"
+
+    # PhysX DLLs - automatically select Debug or Release
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<IF:$<CONFIG:Debug>,${PHYSX_DEBUG_BIN},${PHYSX_RELEASE_BIN}>/PhysX_64.dll"
+        "$<TARGET_FILE_DIR:HatRock>"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<IF:$<CONFIG:Debug>,${PHYSX_DEBUG_BIN},${PHYSX_RELEASE_BIN}>/PhysXCommon_64.dll"
+        "$<TARGET_FILE_DIR:HatRock>"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<IF:$<CONFIG:Debug>,${PHYSX_DEBUG_BIN},${PHYSX_RELEASE_BIN}>/PhysXFoundation_64.dll"
         "$<TARGET_FILE_DIR:HatRock>"
 )
 
