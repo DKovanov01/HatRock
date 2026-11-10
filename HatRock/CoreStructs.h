@@ -90,3 +90,12 @@ struct SwapChainSupportDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+struct ActorData {
+    Vec3 pos;
+    float pad1; /// padding for alignment
+    Vec3 vel;
+    float pad2; /// padding for alignment
+    Vec3 accel;
+    float pad3; /// padding for alignment
+    Quaternion orientation;
+};

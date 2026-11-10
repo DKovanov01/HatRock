@@ -31,47 +31,35 @@ bool Scene0::OnCreate() {
 		camera = new Camera();
 		camera->OnCreate(vRenderer);
 
-		lightsUBO = vRenderer->CreateUniformBuffers<LightsData>(); // data about lights | Make a UBO for each member of the chain
+		lights = new Lights();
+		lights->OnCreate(vRenderer);
 
-		lights.diffuse[0] = Vec4(0.0, 0.0, 0.9, 0.0);
-		lights.specular[0] = Vec4(0.0, 0.3, 0.0, 0.0);
-		lights.ambient = Vec4(0.1, 0.1, 0.1, 0.0);
-		lights.pos[0] = Vec4(-2.0f, 0.0f, -5.0f, 0.0f);
-		lights.numLights = 1;
-		lights.diffuse[1] = Vec4(0.9, 0.0, 0.0, 0.0);
-		lights.specular[1] = Vec4(0.0, 0.3, 0.0, 0.0);
-		lights.pos[1] = Vec4(2.0f, 0.0f, -5.0f, 0.0f);
-		lights.numLights = 2;
-		lights.diffuse[2] = Vec4(0.0, 0.9, 0.0, 0.0);
-		lights.specular[2] = Vec4(0.0, 0.3, 0.0, 0.0);
-		lights.pos[2] = Vec4(0.0f, 2.0f, -5.0f, 0.0f);
-		lights.numLights = 3;
+		mario = new Actor();
+		mario->SetMesh(vRenderer->LoadModelIndexed("./Assets/meshes/Mario.obj"));
+		mario->SetTexture(vRenderer->Create2DTextureImage("./Assets/textures/mario_fire.png"));
+		mario->SetPosition(Vec3(0.0f, 0.0f, 0.0f));
+		mario->OnCreate(vRenderer);
+		actors.push_back(mario);
 
-		vRenderer->UpdateUniformBuffer<LightsData>(lights, lightsUBO); // just write some data into the uniformBuffer | what kind/ a LightsData kind; Then pass it the vector & lights data
-		// how does it know it nseeds lights and lightsUBO? Because it's a templated function
-		//vRenderer->UpdateUniformBuffer<CameraData>(camera, cameraUBO); // same
-
-		mariosPants = vRenderer->Create2DTextureImage("./Assets/textures/mario_fire.png");
-		mariosMesh = vRenderer->LoadModelIndexed("./Assets//meshes/Mario.obj");
+		luigi = new Actor();
+		luigi->SetMesh(vRenderer->LoadModelIndexed("./Assets/meshes/Mario.obj"));
+		luigi->SetTexture(vRenderer->Create2DTextureImage("./Assets/textures/mario_mime.png"));
+		luigi->SetPosition(Vec3(2.0f, 0.0f, 0.0f));
+		luigi->SetOrientation(Quaternion(90.0f, Vec3(0.0f, 0.0f, 0.0f)));
+		luigi->OnCreate(vRenderer);
+		actors.push_back(luigi);
 
 		{ // set 0 
 			DescriptorSetBuilder descriptorSetBuilder(vRenderer->getDevice()); // get the device from the renderer, and pass it to the descriptorSetBuilder constructor
 			descriptorSetBuilder.add(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1, camera->getCameraUBO()); // add a descriptor to the builder, binding point 0, type uniform buffer, stage flags vertex shader, count 1, and pass the camera UBO
-			descriptorSetBuilder.add(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1, lightsUBO); // add another descriptor to the builder, binding point 1, type uniform buffer, stage flags vertex shader and fragment shader, count 1, and pass the lights UBO
+			descriptorSetBuilder.add(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1, lights->getLightsUBO()); // add another descriptor to the builder, binding point 1, type uniform buffer, stage flags vertex shader and fragment shader, count 1, and pass the lights UBO
 			cameraDescriptorSetInfo = descriptorSetBuilder.BuildDescriptorSet(vRenderer->getNumSwapchains()); // build the descriptor set, and pass the number of swapchains to the builder
 		}
 
-		{ // set 1
-			DescriptorSetBuilder descriptorSetBuilder(vRenderer->getDevice()); // Same thing as before, this time for Mario's descriptor set and not the camera.
-			descriptorSetBuilder.add(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, &mariosPants); // binding point 0, type combined image sampler, stage flags fragment shader, count 1, and pass the address of Mario's pants texture
-			mariosDescriptorSetInfo = descriptorSetBuilder.BuildDescriptorSet(vRenderer->getNumSwapchains()); // 
-		}
+		actorDescriptorSetLayoutArray.push_back(cameraDescriptorSetInfo.descriptorSetLayout);
+		actorDescriptorSetLayoutArray.push_back(actors[0]->getDescriptorSetInfo().descriptorSetLayout);
 
-		mariosDescriptorSetLayoutArray.push_back(cameraDescriptorSetInfo.descriptorSetLayout); // push back the descriptor set layout for the camera's descriptor set into the array of descriptor set layouts
-		mariosDescriptorSetLayoutArray.push_back(mariosDescriptorSetInfo.descriptorSetLayout); // Same as above. Order matters here due to them being explicitly sets 0 & 1, that is how they should go into the shader 
-		// if the order is reversed, Mario's textures get fed into lights/camera data, which doesn't work
-
-		pipelineInfo = vRenderer->CreateGraphicsPipeline(mariosDescriptorSetLayoutArray, "Shaders/multiPhong.vert.spv", "Shaders/multiPhong.frag.spv"); // need to recompile these for assignment 1
+		pipelineInfo = vRenderer->CreateGraphicsPipeline(actorDescriptorSetLayoutArray, "./Shaders/multiPhong.vert.spv", "./Shaders/multiPhong.frag.spv"); // need to recompile these for assignment 1
 
 	}
 	break;
@@ -100,8 +88,12 @@ void Scene0::HandleEvents(const SDL_Event& sdlEvent) {
 void Scene0::Update(const float deltaTime) {
 	static float elapsedTime = 0.0f;
 	elapsedTime += deltaTime;
-	mariosModelMatrix = MMath::rotate(elapsedTime * 90.0f, Vec3(0.0f, 1.0f, 0.0f));
-	luigisModelMatrix = MMath::translate(2.0, 0.0f, 0.0f) * MMath::rotate(elapsedTime * 90.0f, Vec3(1.0f, 0.0f, 0.0f));
+	rotation += 90.0f * deltaTime;
+	mario->SetRotation(rotation);
+	luigi->SetRotation(180);
+	for (Actor* actor : actors) {
+		actor->Update(deltaTime);
+	}
 }
 
 void Scene0::Render() const {
@@ -113,12 +105,11 @@ void Scene0::Render() const {
 
 
 		vRenderer->RecordCommandBuffers(Recording::START); // tell the commandBuffers (plural, keep that in mind) to start recording; Then send it a bunch of commands
-		vRenderer->BindMesh(mariosMesh); // go bind the mesh
-		vRenderer->BindDescriptorSet(pipelineInfo.pipelineLayout, cameraDescriptorSetInfo.descriptorSet, 0); // next go bind a descriptor set(s) to the pipeline layout; This is a vector of descriptor sets, so we can bind more than 1 at a time
-		vRenderer->BindDescriptorSet(pipelineInfo.pipelineLayout, mariosDescriptorSetInfo.descriptorSet, 1);
 		vRenderer->BindPipeline(pipelineInfo.pipeline); // go bind the pipeline
-		vRenderer->SetPushConstant(pipelineInfo, mariosModelMatrix); // Set a pushConstant, so we give it a pipelineInfo, and then we pass it what we're drawing - Mario's model matrix
-		vRenderer->DrawIndexed(mariosMesh); // Draw the mesh
+		vRenderer->BindDescriptorSet(pipelineInfo.pipelineLayout, cameraDescriptorSetInfo.descriptorSet, 0); // next go bind a descriptor set(s) to the pipeline layout; This is a vector of descriptor sets, so we can bind more than 1 at a time
+		for (Actor* actor : actors) {
+			actor->Render(vRenderer, pipelineInfo);
+		}
 		vRenderer->RecordCommandBuffers(Recording::STOP); // Then turn the recorder off and submit it
 		vRenderer->Render();
 		break;
@@ -146,15 +137,14 @@ void Scene0::OnDestroy() {
 		vkDeviceWaitIdle(vRenderer->getDevice());
 		vRenderer->DestroyCommandBuffers();
 		vRenderer->DestroyPipeline(pipelineInfo);
-		vRenderer->DestroyDescriptorSet(mariosDescriptorSetInfo);
+		for (Actor* actor : actors) {
+			actor->OnDestroy(vRenderer);
+			delete actor;
+		}
+		actors.clear();
 		vRenderer->DestroyDescriptorSet(cameraDescriptorSetInfo);
-		vRenderer->DestroyUBO(lightsUBO);
+		vRenderer->DestroyUBO(lights->getLightsUBO());
 		vRenderer->DestroyUBO(camera->getCameraUBO()); // dis
-
-		vRenderer->DestroySampler2D(mariosPants);
-		vRenderer->DestroyIndexedMesh(mariosMesh);
-
-
 	}
 
 

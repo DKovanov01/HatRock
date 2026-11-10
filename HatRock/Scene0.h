@@ -4,7 +4,10 @@
 #include "Vector.h"
 #include "Renderer.h"
 #include "Camera.h"
+#include "Lights.h"
 #include "CoreStructs.h"
+#include "Actor.h"
+
 using namespace MATH;
 
 /// Forward declarations 
@@ -16,20 +19,18 @@ private:
 
 	Renderer* renderer;
 	Camera* camera;
-	Matrix4 mariosModelMatrix;
-	Matrix4 luigisModelMatrix;
-	Sampler2D  mariosPants;
-	IndexedVertexBuffer mariosMesh;
+	Lights* lights;
 
-	std::vector<BufferMemory> lightsUBO;
-	LightsData lights;
-
-	DescriptorSetInfo mariosDescriptorSetInfo;
+	std::vector<Actor*> actors;
 	DescriptorSetInfo cameraDescriptorSetInfo;
-	std::vector<VkDescriptorSetLayout> mariosDescriptorSetLayoutArray;
+	std::vector<VkDescriptorSetLayout> actorDescriptorSetLayoutArray;
 
 	PipelineInfo pipelineInfo;
 	CommandBufferData commandBufferData;
+
+	Actor* mario;
+	Actor* luigi;
+	float rotation = 0.0f;
 
 public:
 

@@ -24,9 +24,9 @@ int main() {
     // basically can't change to x86
 
     std::cout << "HatRock Engine starting...\n";
-    std::cout << "Press Enter to run..." << std::endl;
+    //std::cout << "Press Enter to run..." << std::endl;
 
-    std::cin.get();
+    //std::cin.get();
 
     Debug::DebugInit("Vulkan Graphics Engine Log");
     Debug::Info("HatRock Engine starting through GameSceneManager", __FILE__, __LINE__);
