@@ -24,6 +24,7 @@ set(PHYSX_ROOT "${ENGINE_DEPS_ROOT}/PhysX/physx")
 set(PHYSX_BIN "${PHYSX_ROOT}/bin/win.x86_64.vc143.md")
 set(PHYSX_DEBUG_BIN "${PHYSX_BIN}/debug")
 set(PHYSX_RELEASE_BIN "${PHYSX_BIN}/release")
+set(IMGUI_ROOT "${ENGINE_DEPS_ROOT}/DearImGui")
 
 # --------------------------------------------------
 # SDL3
@@ -351,6 +352,38 @@ set_target_properties(PhysX::PvdSDK PROPERTIES
 )
 
 # --------------------------------------------------
+# ImGui
+# --------------------------------------------------
+if(NOT EXISTS "${IMGUI_ROOT}/imgui.h")
+    message(FATAL_ERROR "Dear ImGui headers not found")
+endif()
+
+add_library(ImGui STATIC
+    "${IMGUI_ROOT}/imgui.cpp"
+    "${IMGUI_ROOT}/imgui_draw.cpp"
+    "${IMGUI_ROOT}/imgui_tables.cpp"
+    "${IMGUI_ROOT}/imgui_widgets.cpp"
+
+    # SDL3 platform backend
+    "${IMGUI_ROOT}/backends/imgui_impl_sdl3.cpp"
+
+    # Vulkan renderer backend
+    "${IMGUI_ROOT}/backends/imgui_impl_vulkan.cpp"
+)
+
+add_library(ImGui::ImGui ALIAS ImGui)
+
+target_include_directories(ImGui PUBLIC
+    "${IMGUI_ROOT}"
+    "${IMGUI_ROOT}/backends"
+)
+
+target_link_libraries(ImGui PUBLIC
+    SDL3::SDL3
+    Vulkan::Vulkan
+)
+
+# --------------------------------------------------
 # Collect HatRock engine source files
 # --------------------------------------------------
 
@@ -404,6 +437,7 @@ target_link_libraries(HatRockEngine
 		PhysX::Core
 		PhysX::Common
 		PhysX::Foundation
+		ImGui::ImGui
 )
 
 # --------------------------------------------------
