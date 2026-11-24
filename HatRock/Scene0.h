@@ -5,6 +5,8 @@
 #include "Renderer.h"
 #include "Camera.h"
 #include "CoreStructs.h"
+#include <SDL3_mixer/SDL_mixer.h>
+
 using namespace MATH;
 
 /// Forward declarations 
@@ -30,6 +32,8 @@ private:
 
 	PipelineInfo pipelineInfo;
 	CommandBufferData commandBufferData;
+
+	MIX_Mixer* audio;
 
 public:
 
