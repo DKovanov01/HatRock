@@ -73,6 +73,20 @@ bool Scene0::OnCreate() {
 
 		pipelineInfo = vRenderer->CreateGraphicsPipeline(mariosDescriptorSetLayoutArray, "Shaders/multiPhong.vert.spv", "Shaders/multiPhong.frag.spv"); // need to recompile these for assignment 1
 
+		//Audio test code
+		SDL_Init(SDL_INIT_AUDIO);
+		MIX_Init();
+		audio = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr);
+		if (!audio)
+		{
+			std::cout << "Failed to create audio: " << SDL_GetError() << std::endl;
+			return 0;
+		}														// Dubstep, ok? 
+		MIX_Audio* Music = MIX_LoadAudio(audio, "./Assets/audio/Alex Morgan - Dubstep Heavy Bass With Hard Drops.wav", true);
+		MIX_PlayAudio(audio, Music);
+		MIX_DestroyAudio(Music);
+
+
 	}
 	break;
 
@@ -154,9 +168,11 @@ void Scene0::OnDestroy() {
 		vRenderer->DestroySampler2D(mariosPants);
 		vRenderer->DestroyIndexedMesh(mariosMesh);
 
-
+		if (audio)
+		{
+			MIX_DestroyMixer(audio);
+			MIX_Quit();
+		}
 	}
-
-
 }
 

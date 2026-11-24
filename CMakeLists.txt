@@ -142,6 +142,42 @@ set_target_properties(SDL3_net::SDL3_net PROPERTIES
 )
 
 # --------------------------------------------------
+# SDL3_mixer
+# --------------------------------------------------
+
+if(NOT EXISTS "${SDL3_ROOT}/include/SDL3_mixer/SDL_mixer.h")
+    message(FATAL_ERROR
+        "SDL3_mixer header not found.")
+endif()
+
+find_library(SDL3_MIXER_LIBRARY
+    NAMES SDL3_mixer
+    PATHS "${SDL3_ROOT}/lib/x64"
+    NO_DEFAULT_PATH
+)
+
+find_file(SDL3_MIXER_DLL
+    NAMES SDL3_mixer.dll
+    PATHS "${SDL3_ROOT}/dll/x64"
+    NO_DEFAULT_PATH
+)
+
+if(NOT SDL3_MIXER_LIBRARY OR NOT SDL3_MIXER_DLL)
+    message(FATAL_ERROR
+        "SDL3_mixer library or DLL not found. Check SDL3/lib/x64 and SDL3/dll/x64.")
+endif()
+
+add_library(SDL3_mixer::SDL3_mixer SHARED IMPORTED GLOBAL)
+
+set_target_properties(SDL3_mixer::SDL3_mixer PROPERTIES
+    IMPORTED_IMPLIB "${SDL3_MIXER_LIBRARY}"
+    IMPORTED_LOCATION "${SDL3_MIXER_DLL}"
+    INTERFACE_INCLUDE_DIRECTORIES "${SDL3_ROOT}/include"
+    INTERFACE_LINK_LIBRARIES SDL3::SDL3
+)
+
+
+# --------------------------------------------------
 # Vulkan SDK
 # Uses the installed Vulkan SDK.
 # --------------------------------------------------
@@ -427,6 +463,7 @@ target_link_libraries(HatRockEngine
         SDL3::SDL3
 		SDL3_image::SDL3_image
         SDL3_net::SDL3_net
+	SDL3_mixer::SDL3_mixer
         Vulkan::Vulkan
         OpenGL::GL
         GLEW::GLEW
@@ -498,6 +535,9 @@ add_custom_command(TARGET HatRock POST_BUILD
         "$<TARGET_FILE_DIR:HatRock>"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${SDL3_NET_DLL}"
+        "$<TARGET_FILE_DIR:HatRock>"
+COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SDL3_MIXER_DLL}"
         "$<TARGET_FILE_DIR:HatRock>"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${GLEW_DLL}"
